@@ -1,0 +1,16 @@
+# Copy this file, change the values you need, and run:
+#   sudo ./install.sh --non-interactive --config ./sentrynet.conf
+
+SENTRYNET_DIR=/opt/sentrynet
+SENTRYNET_PORT=8103
+SENTRYNET_DB_NAME=sentrynet
+SENTRYNET_DB_USER=sentrynet_app
+SENTRYNET_SERVICE_NAME=sentrynet
+SENTRYNET_WEBSERVER=nginx
+
+# Optional public dashboard and TLS configuration.
+SENTRYNET_DOMAIN=
+SENTRYNET_CERTBOT_EMAIL=
+
+# Optional. Can also be configured later from the Alerts view.
+SENTRYNET_DISCORD_WEBHOOK=

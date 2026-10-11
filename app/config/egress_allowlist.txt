@@ -1,0 +1,10 @@
+# Destinations egress_monitor.py should never alert on, regardless of its
+# 48h baseline learning window - one entry per line, '#' comments allowed.
+# Each entry is either a bare IP ("203.0.113.5", matches any port) or an
+# "ip:port" pair ("203.0.113.5:443", matches that port only). Hostnames are
+# not supported - use the IP(s) the process actually connects to.
+#
+# Useful entries to add here: your Discord webhook's IP(s), your SMTP relay
+# (if the scheduled report is configured),
+# or any other outbound integration you add after the 48h baseline window
+# has already passed.

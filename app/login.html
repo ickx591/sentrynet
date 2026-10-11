@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SentryNet</title>
+<link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+<style>
+  :root {
+    --bg: #08090d; --bg-2: #0f1117; --border: #1c2029;
+    --text-1: #e8eaf0; --text-2: #8b93a7; --accent: #3987e5; --danger: #ef4444;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: radial-gradient(circle at 50% 0%, #10131c 0%, #08090d 60%);
+    color: var(--text-1); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    min-height: 100vh; display: flex; align-items: center; justify-content: center;
+  }
+  .card {
+    background: var(--bg-2); border: 1px solid var(--border); border-radius: 16px;
+    padding: 40px; width: 100%; max-width: 360px;
+  }
+  .brand { font-size: 1.3rem; font-weight: 700; margin-bottom: 4px; display: flex; align-items: center; gap: 8px; }
+  .brand .accent-t { color: var(--accent); }
+  .sub { color: var(--text-2); font-size: 0.85rem; margin-bottom: 28px; }
+  label { display: block; font-size: 0.78rem; color: var(--text-2); margin-bottom: 6px; margin-top: 16px; }
+  input {
+    width: 100%; background: #12141c; border: 1px solid var(--border); border-radius: 8px;
+    color: var(--text-1); padding: 10px 12px; font-size: 0.9rem; outline: none;
+  }
+  input:focus { border-color: var(--accent); }
+  button {
+    width: 100%; margin-top: 24px; background: var(--accent); border: none; border-radius: 8px;
+    color: white; padding: 11px; font-size: 0.9rem; font-weight: 600; cursor: pointer;
+  }
+  button:hover { filter: brightness(1.1); }
+  button:disabled { opacity: 0.6; cursor: default; }
+  .err { color: var(--danger); font-size: 0.82rem; margin-top: 14px; display: none; }
+  .version-tag { text-align: center; color: var(--text-2); font-size: 0.72rem; margin-top: 18px; }
+</style>
+<link rel="stylesheet" href="/static/auth.css">
+</head>
+<body class="auth-page">
+  <div class="auth-shell">
+    <section class="auth-story" aria-label="SentryNet introduction">
+      <div class="auth-brand"><span class="auth-brand-mark"><img src="/static/sentrynet-icon.svg" width="25" height="25" alt=""></span><span>Sentry<span class="accent-t">Net</span></span></div>
+      <div class="auth-message">
+        <div class="auth-kicker">Private security control plane</div>
+        <h1>Know what reaches your network.</h1>
+        <p>Observe traffic, investigate threats, and protect every service from one focused operations console.</p>
+        <div class="auth-points"><span>Live telemetry</span><span>Threat intelligence</span><span>Infrastructure health</span></div>
+      </div>
+      <div class="auth-foot">SELF-HOSTED · YOUR DATA STAYS ON YOUR INFRASTRUCTURE</div>
+    </section>
+    <main class="auth-panel">
+      <div class="card">
+        <h2>Welcome back</h2>
+        <div class="sub">Sign in to your SentryNet workspace.</div>
+        <form id="f">
+          <label for="u">Username</label>
+          <input type="text" id="u" autocomplete="username" autocapitalize="none" required autofocus>
+          <label for="p">Password</label>
+          <input type="password" id="p" autocomplete="current-password" required>
+          <div id="mfaField" style="display:none">
+            <label for="mfa">Authenticator code</label>
+            <input type="text" id="mfa" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" placeholder="000000">
+          </div>
+          <button type="submit" id="btn">Sign in securely</button>
+          <div class="err" id="err" role="alert" aria-live="polite"></div>
+        </form>
+        <div id="passkeyWrap" style="display:none"><div class="sso-divider"><span>or</span></div><button class="sso-button passkey-button" type="button" id="passkeyButton">Sign in with a passkey</button></div>
+        <div id="ssoWrap" style="display:none"><div class="sso-divider"><span>or</span></div><a class="sso-button" href="/auth/oidc/start">Continue with SSO</a></div>
+        <div class="secure-note">Protected session · Role-based access</div>
+        <div class="version-tag" id="versionTag"></div>
+      </div>
+    </main>
+  </div>
+<script>
+fetch('/api/version').then(function(r){ return r.json(); }).then(function(d){
+  document.getElementById('versionTag').textContent = 'v' + d.version;
+}).catch(function(){});
+fetch('/api/auth/options').then(function(r){ return r.json(); }).then(function(d){
+  if (d.oidc_enabled) document.getElementById('ssoWrap').style.display = 'block';
+}).catch(function(){});
+function b64decode(value) { var raw=atob(value.replace(/-/g,'+').replace(/_/g,'/')+'==='.slice((value.length+3)%4)); return Uint8Array.from(raw,function(c){return c.charCodeAt(0);}); }
+function b64encode(value) { var bytes=new Uint8Array(value),raw=''; bytes.forEach(function(b){raw+=String.fromCharCode(b);}); return btoa(raw).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''); }
+if (window.PublicKeyCredential && navigator.credentials) {
+  document.getElementById('passkeyWrap').style.display = 'block';
+  document.getElementById('passkeyButton').addEventListener('click', async function(){
+    var username=document.getElementById('u').value.trim(), err=document.getElementById('err'), button=this;
+    if(!username){err.textContent='Enter your username first.';err.style.display='block';document.getElementById('u').focus();return;}
+    button.disabled=true;button.textContent='Waiting for passkey…';err.style.display='none';
+    try {
+      var optionsResponse=await fetch('/api/auth/passkey/options',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:username})});
+      var options=await optionsResponse.json(); if(!optionsResponse.ok) throw new Error(options.detail||'Passkey unavailable');
+      options.challenge=b64decode(options.challenge); (options.allowCredentials||[]).forEach(function(c){c.id=b64decode(c.id);});
+      var credential=await navigator.credentials.get({publicKey:options});
+      var payload={id:credential.id,rawId:b64encode(credential.rawId),type:credential.type,response:{clientDataJSON:b64encode(credential.response.clientDataJSON),authenticatorData:b64encode(credential.response.authenticatorData),signature:b64encode(credential.response.signature),userHandle:credential.response.userHandle?b64encode(credential.response.userHandle):null}};
+      var verify=await fetch('/api/auth/passkey/verify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({credential:payload})});
+      var result=await verify.json();if(!verify.ok)throw new Error(result.detail||'Passkey verification failed');location.href='/';
+    } catch(e) { err.textContent=e.name==='NotAllowedError'?'Passkey request cancelled or timed out.':e.message;err.style.display='block';button.disabled=false;button.textContent='Sign in with a passkey'; }
+  });
+}
+var ssoError = new URLSearchParams(location.search).get('sso_error');
+if (ssoError) { var ssoErr = document.getElementById('err'); ssoErr.textContent = ssoError; ssoErr.style.display = 'block'; }
+document.getElementById('f').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  var btn = document.getElementById('btn');
+  var err = document.getElementById('err');
+  btn.disabled = true; btn.textContent = 'Signing in...'; err.style.display = 'none';
+  try {
+    var r = await fetch('/login', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: document.getElementById('u').value, password: document.getElementById('p').value, totp_code: document.getElementById('mfa').value || null })
+    });
+    if (r.ok) { location.href = '/'; return; }
+    var d = await r.json().catch(function(){ return {}; });
+    if (d.mfa_required) { document.getElementById('mfaField').style.display = 'block'; document.getElementById('mfa').required = true; document.getElementById('mfa').focus(); }
+    err.textContent = d.detail || 'Login failed';
+    err.style.display = 'block';
+  } catch (e) {
+    err.textContent = 'Network error';
+    err.style.display = 'block';
+  }
+  btn.disabled = false; btn.textContent = 'Sign in securely';
+});
+</script>
+</body>
+</html>

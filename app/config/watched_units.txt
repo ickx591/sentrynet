@@ -1,0 +1,7 @@
+# systemd services SentryNet should aggregate error logs and resource usage
+# for - one unit name per line, no ".service" suffix, '#' comments allowed.
+# Restart the sentrynet service after editing this file to pick up changes.
+#
+# The installer appends your web server (nginx or Apache) and detected
+# Postgres unit here automatically at install time. Add your own app
+# services below as you deploy them.

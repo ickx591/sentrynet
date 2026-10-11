@@ -1,0 +1,11 @@
+# Config files/globs SentryNet should hash-watch for unexpected changes -
+# one glob pattern per line, '#' comments allowed. Only a SHA-256 hash is
+# ever stored - file contents are never read into the database or an alert,
+# so it's safe to point this at files holding secrets.
+#
+# The installer appends your web server's config paths (nginx or Apache)
+# here automatically at install time. This one is universal regardless of
+# web server. Add your own apps' config/secrets globs below, e.g.:
+#   /srv/myapp/.env*
+#   /srv/myapp/config.json
+/etc/systemd/system/*.service

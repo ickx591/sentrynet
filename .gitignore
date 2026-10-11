@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# Runtime secrets and state
+.admin.json
+.env.postgres
+.sessions.json
+.license.json
+.alert-settings.json
+.oidc.json
+.passkeys.json
+.*_baseline.json
+.*_checkpoint.json
+.*_ranges.json
+.tor_exits.json
+.spamhaus_ranges.json
+.datacenter_ranges.json
+
+# Local configuration and logs
+sentrynet.conf
+*.log
+*.pid
+
+# Editors and operating systems
+.DS_Store
+.idea/
+.vscode/
+*~

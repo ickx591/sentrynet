@@ -1,0 +1,11 @@
+# Known scheduled batch jobs that cause a temporary, expected resource
+# spike on a specific systemd unit - resource_monitor.py won't flag
+# "degraded" (memory-leak or CPU-critical) for a unit during one of its
+# declared windows, though the real numbers still show up in the
+# resource-trend view/graphs. One line per unit, '#' comments allowed.
+#
+# Format: <unit>  every:<N>h  for:<M>m
+#   every:<N>h - the job runs on the hour, every N hours (e.g. cron's
+#                "0 */4 * * *" -> every:4h)
+#   for:<M>m   - how long its resource usage stays elevated, with a little
+#                safety margin added
