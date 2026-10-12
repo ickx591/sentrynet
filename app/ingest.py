@@ -18,7 +18,7 @@ import tempfile
 from collections import deque
 from datetime import datetime, timedelta, timezone
 
-from models import Request, FlaggedIp, BlockedIp, AllowedIp, BlockedCountry, BlockAudit
+from models import db, Request, FlaggedIp, BlockedIp, AllowedIp, BlockedCountry, BlockAudit
 from geoua import country_for_ip, parse_ua
 from heuristics import score_request
 from notify import send_discord_alert
@@ -342,20 +342,31 @@ def _schedule_blocklist_locked(delay):
 
 def _apply_pending_blocklist():
     global _last_reload, _reload_timer, _blocklist_dirty
-    with _reload_lock:
-        _reload_timer = None
-        if not _blocklist_dirty:
-            return
-        _blocklist_dirty = False
     try:
-        webserver_backend.regenerate_blocklist()
         with _reload_lock:
-            _last_reload = time.time()
-    except Exception as e:
-        print(f"[ingest] blocklist update failed: {e}")
-        with _reload_lock:
-            _blocklist_dirty = True
-            _schedule_blocklist_locked(BLOCKLIST_RELOAD_INTERVAL)
+            _reload_timer = None
+            if not _blocklist_dirty:
+                return
+            _blocklist_dirty = False
+        try:
+            webserver_backend.regenerate_blocklist()
+            with _reload_lock:
+                _last_reload = time.time()
+        except Exception as e:
+            print(f"[ingest] blocklist update failed: {e}")
+            with _reload_lock:
+                _blocklist_dirty = True
+                _schedule_blocklist_locked(BLOCKLIST_RELOAD_INTERVAL)
+    finally:
+        # threading.Timer creates a fresh, short-lived thread for every
+        # callback. Peewee keeps connections thread-local, so without an
+        # explicit close every completed timer permanently leaves its
+        # connection checked out of the pool.
+        try:
+            if not db.is_closed():
+                db.close()
+        except Exception:
+            pass
 
 
 def _regenerate_blocklist():
